@@ -261,9 +261,8 @@ We have rigorously tested Kavach against multiple real-world scenarios.
 ## 👨‍💻 Team
 
 **TEAM De-GenZ**
-- *[Team Member 1]* - AI & Architecture
-- *[Team Member 2]* - Frontend & UX
-- *[Team Member 3]* - Security & Integration
+- *Swapnil*
+- *Akul* 
 
 ---
 
