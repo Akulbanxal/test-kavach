@@ -1,0 +1,82 @@
+[
+    {
+        "id": "sig-001",
+        "title": "Police / Authority Impersonation",
+        "description": "Scammers impersonate police or CBI, claiming there is a warrant for the victim's arrest or illicit items were found in a parcel.",
+        "category": "Authority Impersonation",
+        "exampleTranscript": "This is the police. We have a warrant for your arrest due to illegal items found under your name. Pay the fine immediately or you will be arrested.",
+        "recommendedAction": "Do not share personal details. Hang up and contact your local authorities directly."
+    },
+    {
+        "id": "sig-002",
+        "title": "Bank Account Suspension",
+        "description": "Scammers pose as bank or RBI officials, claiming the victim's account is suspended and demanding details to reactivate it.",
+        "category": "Bank Scam",
+        "exampleTranscript": "This is a call from RBI. Your bank account has been suspended due to suspicious activity. Please provide your card details and OTP to verify.",
+        "recommendedAction": "Never share OTPs or card details. Call your bank using the number on the back of your card."
+    },
+    {
+        "id": "sig-003",
+        "title": "KYC Update Fraud",
+        "description": "Scammers claim the victim's KYC is incomplete or expired and threaten to block their services if they don't update it immediately.",
+        "category": "KYC Fraud",
+        "exampleTranscript": "Dear customer, your KYC is pending. Your account will be blocked in 24 hours. Click the link or provide OTP to update KYC immediately.",
+        "recommendedAction": "Do not click unverified links. Update KYC only through official bank apps or branches."
+    },
+    {
+        "id": "sig-004",
+        "title": "Customs / Courier Scam",
+        "description": "Scammers claim a parcel containing drugs, passports, or illegal items has been intercepted in the victim's name by customs.",
+        "category": "Courier Scam",
+        "exampleTranscript": "FedEx customer service here. A parcel in your name was seized by customs because it contains illegal passports. We are transferring you to the cyber police.",
+        "recommendedAction": "Disconnect immediately. Do not pay any clearance fees. Legitimate couriers do not transfer calls to police."
+    },
+    {
+        "id": "sig-005",
+        "title": "UPI Collect Request Fraud",
+        "description": "Scammers deceive victims into approving a UPI collect request by claiming they are sending money, but actually withdrawing it.",
+        "category": "UPI Fraud",
+        "exampleTranscript": "I am sending you the money on UPI. Just scan the QR code and enter your PIN to receive the payment.",
+        "recommendedAction": "Entering a UPI PIN is only for sending money, never for receiving. Decline the request."
+    },
+    {
+        "id": "sig-006",
+        "title": "High-Yield Investment Fraud",
+        "description": "Scammers promise unrealistically high returns on investments, often involving cryptocurrency or stock tips.",
+        "category": "Investment Scam",
+        "exampleTranscript": "Join our VIP trading group. We guarantee 50% returns in one week on crypto investments. Just deposit to this address.",
+        "recommendedAction": "Avoid unsolicited investment offers. If it sounds too good to be true, it is a scam."
+    },
+    {
+        "id": "sig-007",
+        "title": "Tech Support Scam",
+        "description": "Scammers claim the victim's computer or phone is infected with a virus and demand payment for support services.",
+        "category": "Tech Support Scam",
+        "exampleTranscript": "Microsoft technical support. Your computer is infected with a critical virus. Download this software so we can fix it for $200.",
+        "recommendedAction": "Do not give remote access to your device. Legitimate tech companies do not call you proactively about viruses."
+    },
+    {
+        "id": "sig-008",
+        "title": "Lottery / Prize Scam",
+        "description": "Victims are told they won a large sum of money or a car but must pay a processing fee or tax upfront to claim it.",
+        "category": "Lottery Scam",
+        "exampleTranscript": "Congratulations, you have won the grand prize of 50 lakh rupees! To claim it, you just need to pay a small processing tax of 5000 rupees.",
+        "recommendedAction": "You never have to pay upfront to receive a legitimate prize. Ignore the claim."
+    },
+    {
+        "id": "sig-009",
+        "title": "Job Offer Fraud",
+        "description": "Scammers offer lucrative work-from-home jobs (like liking YouTube videos) but require an initial deposit or 'training fee'.",
+        "category": "Job Scam",
+        "exampleTranscript": "We are hiring for a part-time job. Earn 5000 daily by rating hotels. Just pay a 1000 rupee registration fee to start.",
+        "recommendedAction": "Legitimate employers never ask you to pay for a job. Do not send money."
+    },
+    {
+        "id": "sig-010",
+        "title": "Family Emergency Scam",
+        "description": "Scammers impersonate a loved one claiming to be in an accident or jail, begging for immediate funds.",
+        "category": "Family Emergency",
+        "exampleTranscript": "Dad, I am in the hospital after an accident. My phone is broken. Please send money quickly to this doctor's number.",
+        "recommendedAction": "Hang up and verify the story by calling your family member's known phone number."
+    }
+]

@@ -1,0 +1,47 @@
+[
+    {
+        "id": "certin-001",
+        "source": "CERT-In",
+        "title": "Beware of Phishing Attacks via Fake Bank SMS and Calls",
+        "excerpt": "CERT-In has observed a surge in phishing campaigns where fraudsters impersonate Indian banks via SMS and voice calls, directing victims to fake websites or extracting OTPs and passwords over phone. Citizens should verify all communications through official bank portals and never share credentials over unverified channels.",
+        "url": "https://www.cert-in.org.in/PDF/Advisory%20Phishing%20%20attacks.pdf",
+        "publicationDate": "2023-11",
+        "tags": ["phishing", "otp", "sms", "bank", "impersonation", "credentials"]
+    },
+    {
+        "id": "certin-002",
+        "source": "CERT-In",
+        "title": "Advisory on Vishing (Voice Phishing) Attacks",
+        "excerpt": "Vishing attacks use automated voice calls or live callers pretending to be bank officials, government agents, or courier companies. Attackers induce panic by claiming legal action, account suspension, or parcel seizure and then request OTPs, card details, or fund transfers. Hang up and call back using numbers from the official website.",
+        "url": "https://www.cert-in.org.in/PDF/Advisory-vishing.pdf",
+        "publicationDate": "2023-05",
+        "tags": ["vishing", "voice", "phishing", "otp", "courier", "government", "bank"]
+    },
+    {
+        "id": "certin-003",
+        "source": "CERT-In",
+        "title": "Remote Access Trojan Delivered via Fake Tech Support Calls",
+        "excerpt": "CERT-In has issued guidance on tech-support scams where callers claim your device is infected and instruct you to install remote-access software (AnyDesk, QuickSupport, TeamViewer). Once installed, attackers gain full control and execute banking fraud. No legitimate organisation proactively calls to fix device issues.",
+        "url": "https://www.cert-in.org.in/PDF/Advisory%20Tech%20Support%20Scams.pdf",
+        "publicationDate": "2022-09",
+        "tags": ["tech support", "anydesk", "teamviewer", "remote access", "trojan", "install"]
+    },
+    {
+        "id": "certin-004",
+        "source": "CERT-In",
+        "title": "Digital Arrest Fraud: Fake CBI / Police Video Calls",
+        "excerpt": "CERT-In has issued a warning about 'Digital Arrest' scams where fraudsters conduct fake video calls posing as CBI, ED, or Police officers and claim the victim is under digital surveillance for money laundering or drug trafficking. They demand immediate payments to 'cancel the arrest'. No law enforcement agency in India conducts arrests or demands payment via video call.",
+        "url": "https://www.cert-in.org.in/PDF/Advisory-Digital-Arrest.pdf",
+        "publicationDate": "2024-03",
+        "tags": ["digital arrest", "cbi", "police", "video call", "money laundering", "warrant"]
+    },
+    {
+        "id": "certin-005",
+        "source": "CERT-In",
+        "title": "Investment Fraud via Social Media and Messaging Apps",
+        "excerpt": "CERT-In warns of investment scams propagated through WhatsApp groups, Telegram channels, and Instagram ads promising guaranteed high returns on stocks, crypto, or forex trading. Victims are added to fake VIP groups, shown fabricated profits, and then asked to invest larger sums before withdrawals are blocked. Report to cybercrime.gov.in and call 1930.",
+        "url": "https://www.cert-in.org.in/PDF/Advisory-Investment-Fraud.pdf",
+        "publicationDate": "2024-01",
+        "tags": ["investment", "crypto", "whatsapp", "telegram", "returns", "fraud", "social media"]
+    }
+]

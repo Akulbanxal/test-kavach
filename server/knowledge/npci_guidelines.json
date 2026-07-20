@@ -1,0 +1,47 @@
+[
+    {
+        "id": "npci-001",
+        "source": "NPCI",
+        "title": "You Never Need a UPI PIN to Receive Money",
+        "excerpt": "NPCI clarifies that a UPI PIN is required only to authorise payments (debits). To receive money, no PIN, QR code scan, or app interaction is required. Fraudsters exploit this misunderstanding by asking victims to 'enter your PIN to accept a payment'. Entering the PIN on a collect request authorises a debit from your account, not a credit.",
+        "url": "https://www.npci.org.in/what-we-do/upi/safety-precautions",
+        "publicationDate": "2023-06",
+        "tags": ["upi", "pin", "receive", "collect", "qr", "payment", "debit"]
+    },
+    {
+        "id": "npci-002",
+        "source": "NPCI",
+        "title": "Beware of Fraudulent UPI Collect Requests",
+        "excerpt": "NPCI warns that fraudsters send UPI collect requests to victims by claiming they are transferring funds. When the victim approves the request, money is actually debited from their account. Always verify the direction of the transaction before approving any UPI collect or pay request. Decline unsolicited collect requests immediately.",
+        "url": "https://www.npci.org.in/what-we-do/upi/fraud-awareness",
+        "publicationDate": "2022-10",
+        "tags": ["upi", "collect request", "approve", "debit", "fraud", "transfer"]
+    },
+    {
+        "id": "npci-003",
+        "source": "NPCI",
+        "title": "Scanning a QR Code Always Initiates a Payment — Never a Receipt",
+        "excerpt": "NPCI guidance states that QR codes in UPI are designed exclusively for initiating payments. Scanning a QR code will debit your account, never credit it. Scammers create fake QR codes and claim you will 'receive' money by scanning. If someone asks you to scan a QR code to receive a refund or payment, it is a scam.",
+        "url": "https://www.npci.org.in/what-we-do/upi/qr-code-safety",
+        "publicationDate": "2023-03",
+        "tags": ["qr", "scan", "upi", "receive", "payment", "refund", "debit"]
+    },
+    {
+        "id": "npci-004",
+        "source": "NPCI",
+        "title": "Verify Merchant VPA Before Completing Any UPI Transaction",
+        "excerpt": "NPCI advises all UPI users to verify the Virtual Payment Address (VPA) or merchant name displayed on the UPI confirmation screen before entering their PIN. Fraudsters create VPAs similar to trusted entities (e.g., 'paytm-support@upi'). Once a PIN is entered and transaction confirmed, the money cannot be recalled. Always double-check the payee name.",
+        "url": "https://www.npci.org.in/what-we-do/upi/best-practices",
+        "publicationDate": "2023-09",
+        "tags": ["vpa", "upi", "verify", "merchant", "pin", "confirm", "payee"]
+    },
+    {
+        "id": "npci-005",
+        "source": "NPCI",
+        "title": "NPCI and Banks Will Never Ask for UPI Credentials Over the Phone",
+        "excerpt": "NPCI and any affiliated payment service provider will never call customers to ask for UPI PIN, OTP, registered mobile number, or bank account details. Any caller claiming to be from NPCI, BHIM, or a UPI payment app and requesting such details is a fraudster. Report such incidents to 1930 or cybercrime.gov.in.",
+        "url": "https://www.npci.org.in/what-we-do/upi/customer-protection",
+        "publicationDate": "2024-02",
+        "tags": ["npci", "upi", "otp", "pin", "credentials", "call", "fraud"]
+    }
+]

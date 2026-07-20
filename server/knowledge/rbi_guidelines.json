@@ -1,0 +1,47 @@
+[
+    {
+        "id": "rbi-001",
+        "source": "RBI",
+        "title": "RBI Never Asks for OTP, PIN, or Passwords",
+        "excerpt": "The Reserve Bank of India (RBI) never calls, texts, or emails customers to ask for OTP, ATM PIN, account passwords, or any sensitive banking credential. Any communication claiming to be from RBI and requesting such information is fraudulent. Customers should hang up immediately and report to their bank.",
+        "url": "https://rbi.org.in/Scripts/PublicationReportDetails.aspx?UrlPage=&ID=1213",
+        "publicationDate": "2023-09",
+        "tags": ["otp", "impersonation", "rbi", "credentials", "pin"]
+    },
+    {
+        "id": "rbi-002",
+        "source": "RBI",
+        "title": "UPI PIN Is Only for Sending Money — Never for Receiving",
+        "excerpt": "Entering a UPI PIN is required only when SENDING money. To receive money, no PIN entry or QR code scan is needed. Scammers trick victims into entering their PIN under the pretext of 'receiving a payment'. If you enter your PIN on a collect request, you are actually authorising a debit from your account, not receiving a credit.",
+        "url": "https://rbi.org.in/Scripts/BS_PressReleaseDisplay.aspx?prid=53573",
+        "publicationDate": "2022-11",
+        "tags": ["upi", "pin", "qr", "payment", "receive"]
+    },
+    {
+        "id": "rbi-003",
+        "source": "RBI",
+        "title": "Account Suspension and KYC Threats Over Phone Are Fraud",
+        "excerpt": "Fraudsters impersonate bank officials or RBI staff, claiming that your account will be suspended due to incomplete KYC or suspicious activity, and demand immediate action by sharing credentials or installing apps. Banks and the RBI never threaten account suspension over an unsolicited call. Always verify through official bank contact numbers printed on your card or passbook.",
+        "url": "https://rbi.org.in/Scripts/PublicationReportDetails.aspx?UrlPage=&ID=1246",
+        "publicationDate": "2024-01",
+        "tags": ["kyc", "account", "suspension", "impersonation", "bank"]
+    },
+    {
+        "id": "rbi-004",
+        "source": "RBI",
+        "title": "Digital Arrest Scam: Police and CBI Do Not Conduct Video Arrests",
+        "excerpt": "Fraudsters call victims posing as CBI, police, customs, or TRAI officials, claiming the victim is under 'digital arrest' for money laundering, drug trafficking, or illegal SIM card use, and demand money to avoid arrest. No Indian law enforcement agency conducts arrests over video call or demands payments through UPI. Disconnect and report to 1930 (Cybercrime Helpline) immediately.",
+        "url": "https://rbi.org.in/Scripts/BS_PressReleaseDisplay.aspx?prid=56702",
+        "publicationDate": "2024-06",
+        "tags": ["digital arrest", "police", "cbi", "customs", "trai", "video call", "warrant"]
+    },
+    {
+        "id": "rbi-005",
+        "source": "RBI",
+        "title": "Ponzi and High-Yield Investment Schemes Are Illegal",
+        "excerpt": "Schemes promising unusually high returns (above 12% per annum) in short periods — especially those involving cryptocurrency, real estate, or MLM structures — are typically fraudulent Ponzi schemes. The RBI has not authorised any entity to collect deposits with guaranteed high returns. Always verify with SEBI or RBI before investing. Report suspicious schemes to 1930.",
+        "url": "https://rbi.org.in/Scripts/BS_PressReleaseDisplay.aspx?prid=52801",
+        "publicationDate": "2022-06",
+        "tags": ["ponzi", "investment", "high-yield", "crypto", "returns", "scheme"]
+    }
+]

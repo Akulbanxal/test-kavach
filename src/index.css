@@ -1,0 +1,226 @@
+/* ── Kavach AI — Premium Light Fintech Design System ─────────────────────── */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  /* ── Light Background Layers */
+  --bg-page: #F8FAFC;
+  --bg-white: #FFFFFF;
+  --bg-soft: #EEF2FF;
+  --bg-muted: #F1F5F9;
+
+  /* ── Primary */
+  --blue: #2563EB;
+  --blue-light: #3B82F6;
+  --blue-pale: #EFF6FF;
+  --blue-border: #BFDBFE;
+
+  /* ── Accent */
+  --cyan: #06B6D4;
+  --cyan-pale: #ECFEFF;
+
+  /* ── Status */
+  --green: #10B981;
+  --green-pale: #ECFDF5;
+  --green-border: #A7F3D0;
+  --yellow: #F59E0B;
+  --yellow-pale: #FFFBEB;
+  --red: #DC2626;
+  --red-light: #EF4444;
+  --red-pale: #FEF2F2;
+  --red-border: #FECACA;
+
+  /* ── Text — lifted slightly for projector contrast */
+  --text-primary: #0F172A;
+  --text-secondary: #1E293B;
+  --text-muted: #475569;
+  --text-faint: #64748B;
+  --text-placeholder: #94A3B8;
+
+  /* ── Borders */
+  --border: #E2E8F0;
+  --border-strong: #CBD5E1;
+
+  /* ── Shadows */
+  --shadow-xs: 0 1px 3px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04);
+  --shadow-sm: 0 2px 8px rgba(15,23,42,0.08), 0 1px 3px rgba(15,23,42,0.05);
+  --shadow-md: 0 4px 16px rgba(15,23,42,0.10), 0 2px 6px rgba(15,23,42,0.06);
+  --shadow-lg: 0 8px 32px rgba(15,23,42,0.12), 0 4px 12px rgba(15,23,42,0.08);
+  --shadow-blue: 0 4px 24px rgba(37,99,235,0.2);
+  --shadow-red: 0 4px 32px rgba(220,38,38,0.25);
+  --shadow-green: 0 4px 24px rgba(16,185,129,0.2);
+
+  /* ── Fonts */
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-display: 'Space Grotesk', 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* ── Radii */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 20px;
+  --r-2xl: 24px;
+  --r-full: 9999px;
+
+  /* ── Responsive layout */
+  --main-cols: minmax(0, 1fr) minmax(340px, 440px);
+  --metric-cols: repeat(4, minmax(0, 1fr));
+  --content-pad: 28px;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-page);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* ── Scrollbar ─────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+
+button { font-family: var(--font-sans); }
+
+/* ── Utility ───────────────────────────────────────────────────────────────── */
+.card {
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: var(--r-2xl);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── Minimum readable font size for monospace telemetry */
+.mono-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+  text-transform: uppercase;
+}
+
+/* ── Responsive Layout Rules ──────────────────────────────────────────────── */
+@media (max-width: 1200px) {
+  :root {
+    --main-cols: 1fr;
+    --content-pad: 20px;
+  }
+
+  /* On smaller displays, AI panel grid also collapses */
+  .ai-panel-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 900px) {
+  :root {
+    --metric-cols: repeat(2, 1fr);
+  }
+}
+
+/* ── Keyframe Animations ──────────────────────────────────────────────────── */
+
+/* Tighter pulse ring — avoids clipping on dense layouts */
+@keyframes pulse-ring {
+  0%   { opacity: 0.65; transform: scale(1); }
+  100% { opacity: 0;    transform: scale(1.9); }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.35; }
+}
+
+@keyframes waveform {
+  0%   { transform: scaleY(0.1); }
+  50%  { transform: scaleY(1); }
+  100% { transform: scaleY(0.1); }
+}
+
+@keyframes eq-bar {
+  0%   { transform: scaleY(0.15); }
+  100% { transform: scaleY(1); }
+}
+
+@keyframes shield-rotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes float-up {
+  0%   { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scan-line {
+  0%   { transform: translateY(0); opacity: 0.6; }
+  50%  { opacity: 1; }
+  100% { transform: translateY(100vh); opacity: 0; }
+}
+
+@keyframes glitch-1 {
+  0%, 100% { clip-path: inset(0 0 98% 0); transform: translateX(0); }
+  20%       { clip-path: inset(30% 0 50% 0); transform: translateX(-4px); }
+  40%       { clip-path: inset(70% 0 5% 0);  transform: translateX(4px); }
+  60%       { clip-path: inset(10% 0 80% 0); transform: translateX(-2px); }
+  80%       { clip-path: inset(55% 0 25% 0); transform: translateX(3px); }
+}
+
+@keyframes glitch-2 {
+  0%, 100% { clip-path: inset(0 0 98% 0); transform: translateX(0); }
+  20%       { clip-path: inset(20% 0 60% 0); transform: translateX(4px); }
+  40%       { clip-path: inset(80% 0 5% 0);  transform: translateX(-4px); }
+  60%       { clip-path: inset(5% 0 85% 0);  transform: translateX(2px); }
+  80%       { clip-path: inset(40% 0 40% 0); transform: translateX(-3px); }
+}
+
+@keyframes siren-flicker {
+  0%, 100% { opacity: 0.06; }
+  50%       { opacity: 0.20; }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  15%       { transform: translateX(-4px); }
+  30%       { transform: translateX(4px); }
+  45%       { transform: translateX(-3px); }
+  60%       { transform: translateX(3px); }
+  75%       { transform: translateX(-2px); }
+  90%       { transform: translateX(2px); }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes gradient-shift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ── Threat escalation pulse — used on critical card borders */
+@keyframes threat-border-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+  50%       { box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15); }
+}

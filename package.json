@@ -1,0 +1,39 @@
+{
+  "name": "kavach-ai",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/swapnilyt1234/Kavach-AI.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/swapnilyt1234/Kavach-AI/issues"
+  },
+  "homepage": "https://github.com/swapnilyt1234/Kavach-AI#readme",
+  "dependencies": {
+    "@fontsource/inter": "^5.2.8",
+    "framer-motion": "^12.40.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
+    "lucide-react": "^1.21.0",
+    "onnxruntime-web": "^1.27.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.0.2",
+    "typescript": "^7.0.2",
+    "vite": "^8.0.16"
+  }
+}

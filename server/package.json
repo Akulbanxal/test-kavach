@@ -1,0 +1,22 @@
+{
+  "name": "kavachai-server",
+  "version": "1.0.0",
+  "description": "Backend API for KavachAI",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node --env-file=../.env index.js",
+    "dev": "node --env-file=../.env --watch index.js"
+  },
+  "dependencies": {
+    "@google-cloud/speech": "^7.5.0",
+    "@google-cloud/vertexai": "^1.9.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "ws": "^8.21.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  }
+}
