@@ -266,10 +266,6 @@ We have rigorously tested Kavach against multiple real-world scenarios.
 
 ---
 
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
-
 <div align="center">
   <b>Built with ❤️ to stop digital fraud before it happens.</b>
 </div>
