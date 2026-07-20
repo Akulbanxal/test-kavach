@@ -1,4 +1,5 @@
 import { TranscriptChunk, GeminiInferenceResponse } from './aiTypes';
+import { API_URL } from '../config/api';
 
 export class GeminiAnalyzer {
     private transcriptBuffer: TranscriptChunk[] = [];
@@ -25,7 +26,7 @@ export class GeminiAnalyzer {
         while (attempt < this.maxRetries) {
             attempt++;
             try {
-                const response = await fetch('/api/analyze', {
+                const response = await fetch(`${API_URL}/api/analyze`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ chunk, previousContext })
