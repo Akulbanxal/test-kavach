@@ -1,9 +1,11 @@
 import { TranscriptChunk, GeminiInferenceResponse } from './aiTypes';
 import { API_URL } from '../config/api';
+import { localFallbackAnalyzer } from './localFallbackAnalyzer';
 
 export class GeminiAnalyzer {
     private transcriptBuffer: TranscriptChunk[] = [];
     private maxRetries = 3;
+    public isFallbackMode = false;
 
     constructor() {
         console.log('[GeminiAnalyzer] Initialized. Communicating with backend API.');
@@ -64,8 +66,12 @@ export class GeminiAnalyzer {
                 console.warn(`[GeminiAnalyzer] Attempt ${attempt} failed:`, error);
 
                 if (attempt >= this.maxRetries) {
-                    console.error(`[GeminiAnalyzer] Max retries reached. Returning default.`);
-                    return this.getSafeDefault();
+                    console.warn(`[GeminiAnalyzer] Max retries reached. Activating local fallback mode.`);
+                    this.isFallbackMode = true;
+                    window.dispatchEvent(new CustomEvent('ai-quota-exhausted'));
+                    // Use keyword-based local fallback instead of safe default
+                    const fallbackResult = localFallbackAnalyzer.analyze(chunk.text);
+                    return fallbackResult;
                 }
 
                 const delay = 500 * Math.pow(2, attempt - 1);
@@ -73,7 +79,9 @@ export class GeminiAnalyzer {
             }
         }
 
-        return this.getSafeDefault();
+        this.isFallbackMode = true;
+        window.dispatchEvent(new CustomEvent('ai-quota-exhausted'));
+        return localFallbackAnalyzer.analyze(chunk.text);
     }
 
     private getSafeDefault(): GeminiInferenceResponse {
@@ -96,6 +104,7 @@ export class GeminiAnalyzer {
 
     public reset() {
         this.transcriptBuffer = [];
+        this.isFallbackMode = false;
         console.log('[GeminiAnalyzer] Buffer cleared.');
     }
 }

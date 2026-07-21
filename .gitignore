@@ -5,3 +5,4 @@ build/
 .env.*
 .DS_Store
 .gemini/
+public/models/deepfake_detector.onnx.bak

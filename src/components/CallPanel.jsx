@@ -210,10 +210,18 @@ function TelCard({ label, value, unit, color, active }) {
   );
 }
 
+// ── Language Options ─────────────────────────────────────────────────────────
+export const LANGUAGE_OPTIONS = [
+  { code: 'en-US', label: 'English', flag: '🇬🇧' },
+  { code: 'hi-IN', label: 'Hindi', flag: '🇮🇳' },
+  { code: 'hi-IN', label: 'Hinglish', flag: '🇮🇳', mix: true },
+];
+
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function CallPanel({
   callActive, threatLevel, onStart, onEnd, onSimulateAttack, locked,
   latency, packetInteg, entropy, amplitude,
+  selectedLanguage = 'en-US', onLanguageChange,
 }) {
   const isActive   = callActive;
   const threat     = threatLevel || 'SAFE';
@@ -283,7 +291,7 @@ export default function CallPanel({
             Scam Signature Monitor
           </div>
           <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>
-            Voice Signature Verification
+            Acoustic Anomaly Monitoring
           </div>
         </div>
 
@@ -315,6 +323,45 @@ export default function CallPanel({
 
       {/* ── Live Waveform ── */}
       <LiveWaveform active={isActive} threatLevel={threat} amplitude={amplitude} />
+
+      {/* ── Language Selector ── */}
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#94A3B8', fontFamily: 'JetBrains Mono, monospace', marginBottom: 7 }}>
+          Detection Language
+        </div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {[
+            { code: 'en-US', label: 'English 🇬🇧' },
+            { code: 'hi-IN', label: 'Hindi 🇮🇳' },
+          ].map((lang) => {
+            const isSelected = selectedLanguage === lang.code;
+            return (
+              <button
+                key={lang.code}
+                onClick={() => onLanguageChange && onLanguageChange(lang.code)}
+                disabled={callActive}
+                style={{
+                  flex: 1, padding: '8px 0',
+                  borderRadius: 8,
+                  background: isSelected ? 'linear-gradient(135deg, #EFF6FF, #DBEAFE)' : '#F8FAFC',
+                  color: isSelected ? '#2563EB' : '#94A3B8',
+                  fontWeight: isSelected ? 700 : 500, fontSize: 12,
+                  border: `1.5px solid ${isSelected ? '#BFDBFE' : '#E2E8F0'}`,
+                  cursor: callActive ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s',
+                }}
+              >
+                {lang.label}
+              </button>
+            );
+          })}
+        </div>
+        {selectedLanguage === 'hi-IN' && (
+          <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 5 }}>
+            ℹ Hindi (hi-IN) + Hinglish code-mix detection active
+          </div>
+        )}
+      </div>
 
       {/* ── Telemetry row ── */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
@@ -380,51 +427,60 @@ export default function CallPanel({
           </motion.button>
         )}
 
-        {/* 2x2 Scam Simulation Grid */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: 8,
-          marginTop: 4,
-        }}>
-          {[
-            { id: 'police', label: 'Police Scam', icon: '🚔' },
-            { id: 'rbi', label: 'RBI Scam', icon: '🏦' },
-            { id: 'family', label: 'Voice Clone', icon: '👥' },
-            { id: 'kyc', label: 'KYC Fraud', icon: '📋' },
-          ].map((scam) => {
-            const isClickable = !locked && isActive;
-            return (
-              <motion.button
-                key={scam.id}
-                id={`simulate-${scam.id}-btn`}
-                // Maintain simulate-attack-btn on the first one for automated scripting/compat if needed
-                {...(scam.id === 'police' ? { id: 'simulate-attack-btn' } : {})}
-                onClick={() => onSimulateAttack(scam.id)}
-                disabled={!isClickable}
-                whileHover={{ scale: isClickable ? 1.02 : 1, y: isClickable ? -1 : 0 }}
-                whileTap={{ scale: isClickable ? 0.98 : 1 }}
-                style={{
-                  padding: '12px 8px',
-                  borderRadius: 12,
-                  background: isClickable
-                    ? 'linear-gradient(135deg, rgba(37,99,235,0.06), rgba(37,99,235,0.03))'
-                    : '#F8FAFC',
-                  color: isClickable ? '#2563EB' : '#CBD5E1',
-                  fontWeight: 700, fontSize: 12.5,
-                  cursor: isClickable ? 'pointer' : 'not-allowed',
-                  border: `1.5px solid ${isClickable ? 'rgba(37,99,235,0.2)' : '#E2E8F0'}`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                  boxShadow: isClickable ? '0 2px 8px rgba(37,99,235,0.06)' : 'none',
-                  transition: 'all 0.2s',
-                  letterSpacing: '0.02em',
-                }}
-              >
-                <span>{scam.icon}</span>
-                <span>{scam.label}</span>
-              </motion.button>
-            );
-          })}
+        {/* Simulation Grid: 2 English + 2 English + 2 Hindi */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#94A3B8', fontFamily: 'JetBrains Mono, monospace', marginTop: 4 }}>
+            Scam Simulations
+          </div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: 8,
+          }}>
+            {[
+              { id: 'police', label: 'Police Scam', icon: '🚔' },
+              { id: 'rbi', label: 'RBI Scam', icon: '🏦' },
+              { id: 'family', label: 'Voice Clone', icon: '👥' },
+              { id: 'kyc', label: 'KYC Fraud', icon: '📋' },
+              { id: 'police_hindi', label: 'Police (Hindi)', icon: '🚔' },
+              { id: 'banking_hindi', label: 'Bank (Hinglish)', icon: '🏦' },
+            ].map((scam) => {
+              const isClickable = !locked && isActive;
+              return (
+                <motion.button
+                  key={scam.id}
+                  id={`simulate-${scam.id}-btn`}
+                  {...(scam.id === 'police' ? { id: 'simulate-attack-btn' } : {})}
+                  onClick={() => onSimulateAttack(scam.id)}
+                  disabled={!isClickable}
+                  whileHover={{ scale: isClickable ? 1.02 : 1, y: isClickable ? -1 : 0 }}
+                  whileTap={{ scale: isClickable ? 0.98 : 1 }}
+                  style={{
+                    padding: '10px 8px',
+                    borderRadius: 12,
+                    background: isClickable
+                      ? scam.id.includes('hindi')
+                        ? 'linear-gradient(135deg, rgba(234,88,12,0.07), rgba(234,88,12,0.03))'
+                        : 'linear-gradient(135deg, rgba(37,99,235,0.06), rgba(37,99,235,0.03))'
+                      : '#F8FAFC',
+                    color: isClickable
+                      ? scam.id.includes('hindi') ? '#EA580C' : '#2563EB'
+                      : '#CBD5E1',
+                    fontWeight: 700, fontSize: 12,
+                    cursor: isClickable ? 'pointer' : 'not-allowed',
+                    border: `1.5px solid ${isClickable ? (scam.id.includes('hindi') ? 'rgba(234,88,12,0.2)' : 'rgba(37,99,235,0.2)') : '#E2E8F0'}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                    boxShadow: isClickable ? '0 2px 8px rgba(37,99,235,0.06)' : 'none',
+                    transition: 'all 0.2s',
+                    letterSpacing: '0.02em',
+                  }}
+                >
+                  <span>{scam.icon}</span>
+                  <span>{scam.label}</span>
+                </motion.button>
+              );
+            })}
+          </div>
         </div>
       </div>
     </motion.div>

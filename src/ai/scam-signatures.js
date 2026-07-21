@@ -47,6 +47,34 @@ export const SCAM_SIGNATURES = {
     pitchProfile: 0.92,
     cadencePattern: 0.84,
     urgencyMetric: 0.97
+  },
+
+  // ── Hindi Language Scenarios ────────────────────────────────────────────────
+  police_hindi: {
+    name: 'police_hindi',
+    displayName: 'Police Impersonation (Hindi)',
+    description: 'High-pressure authority impersonation in Hindi — giraftari threats and penalty demands.',
+    spokenSentence: 'Namaste, main Inspector Rajesh bol raha hoon, Delhi Crime Branch se. Aapke naam par ek serious case darj hua hai. Aapko turant fifty thousand rupaye penalty account mein transfer karni hogi, warna giraftari ka warrant issue ho jayega. Abhi transfer karo.',
+    speechRate: 0.9,
+    speechPitch: 0.8,
+    spectralProfile: 0.86,
+    entropyProfile: 0.91,
+    pitchProfile: 0.94,
+    cadencePattern: 0.89,
+    urgencyMetric: 0.95
+  },
+  banking_hindi: {
+    name: 'banking_hindi',
+    displayName: 'Bank Fraud (Hinglish)',
+    description: 'Hinglish bank impersonation — KYC expiry threats with OTP and account block pressure.',
+    spokenSentence: 'Hello sir, main aapki bank ke cyber security department se bol raha hoon. Aapka KYC expire ho gaya hai, aur account abhi block hone wala hai. Account save karne ke liye, apna account number aur OTP share karein jo abhi aapke registered mobile pe aaya hai. Bilkul jaldi karo, sirf teen minute baaki hain.',
+    speechRate: 1.0,
+    speechPitch: 1.1,
+    spectralProfile: 0.90,
+    entropyProfile: 0.83,
+    pitchProfile: 0.93,
+    cadencePattern: 0.80,
+    urgencyMetric: 0.96
   }
 };
 

@@ -1,4 +1,5 @@
 import { TranscriptChunk } from './aiTypes';
+import { API_URL } from '../config/api';
 
 export type TranscriptCallback = (chunk: TranscriptChunk) => void;
 export type StateCallback = (state: string) => void;
@@ -31,11 +32,7 @@ export class SpeechProvider {
     private connectSocket() {
         this.setState('Connecting');
 
-        // Determine WS URL based on current host if not local, but we know backend is 3001
-        const API_URL = import.meta.env.VITE_API_URL;
-
-        const wsUrl =
-            API_URL.replace(/^http/, "ws") + "/ws/speech";
+        const wsUrl = API_URL.replace(/^http/, "ws") + "/ws/speech";
         this.ws = new WebSocket(wsUrl);
 
         this.ws.onopen = async () => {
@@ -98,8 +95,74 @@ export class SpeechProvider {
         };
 
         this.ws.onerror = (err) => {
-            console.error('[SpeechProvider] WS Error:', err);
+            console.warn('[SpeechProvider] WebSocket error, switching to Web Speech API fallback:', err);
+            this.setState('Fallback Mode (Web Speech)');
+            this.startWebSpeechFallback();
         };
+    }
+
+    private startWebSpeechFallback() {
+        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            console.warn('[SpeechProvider] Web Speech API not supported in this browser.');
+            this.setState('Error');
+            return;
+        }
+
+        try {
+            const recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            let interimSilenceTimer: any = null;
+
+            recognition.onresult = (event: any) => {
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    const transcript = event.results[i][0].transcript;
+                    const isFinal = event.results[i].isFinal;
+
+                    if (this.onTranscript) {
+                        this.onTranscript({
+                            id: `chunk_${this.chunkIdCounter++}`,
+                            text: transcript,
+                            timestamp: Date.now(),
+                            isFinal
+                        });
+                    }
+
+                    // Reset interim silence timer — if user pauses for 1.5s while speaking, treat as final
+                    if (interimSilenceTimer) clearTimeout(interimSilenceTimer);
+                    if (!isFinal) {
+                        interimSilenceTimer = setTimeout(() => {
+                            if (this.onTranscript) {
+                                this.onTranscript({
+                                    id: `chunk_pause_${this.chunkIdCounter++}`,
+                                    text: transcript,
+                                    timestamp: Date.now(),
+                                    isFinal: true
+                                });
+                            }
+                        }, 1800);
+                    }
+                }
+            };
+
+            recognition.onerror = (e: any) => {
+                console.warn('[SpeechProvider] Web Speech error:', e);
+            };
+
+            recognition.onend = () => {
+                if (this.isStreaming) {
+                    try { recognition.start(); } catch {}
+                }
+            };
+
+            recognition.start();
+            console.log('[SpeechProvider] Native Web Speech API active.');
+        } catch (e) {
+            console.error('[SpeechProvider] Failed to start Web Speech API:', e);
+        }
     }
 
     private startMicrophone(stream: MediaStream) {
@@ -150,13 +213,16 @@ export class SpeechProvider {
                 type: 'mock_inject',
                 text: text
             }));
+        } else if (this.onTranscript) {
+            console.log('[SpeechProvider] WebSocket not open. Injecting simulated transcript directly to local pipeline.');
+            this.onTranscript({
+                id: `chunk_sim_${this.chunkIdCounter++}`,
+                text: text,
+                timestamp: Date.now(),
+                isFinal: true
+            });
         } else {
-            // Surface the failure — do NOT silently drop the inject
-            const stateNames = ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'];
-            const wsState = this.ws ? (stateNames[this.ws.readyState] ?? `UNKNOWN(${this.ws.readyState})`) : 'NULL (no socket)';
-            const msg = `[SpeechProvider] injectSimulatedTranscript failed: WebSocket is not open (state=${wsState}). Start a call first.`;
-            console.error(msg);
-            this.setState(`Inject Failed: WS ${wsState}`);
+            console.warn('[SpeechProvider] Cannot inject transcript: neither WebSocket nor onTranscript callback is active. Start a call first.');
         }
     }
 }

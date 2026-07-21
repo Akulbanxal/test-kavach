@@ -2,14 +2,25 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SCORING_CONFIG } from '../ai/scoringConfig';
 
-export default function PaymentGuard({ riskScore, triggeredRules, scamCategory, summary, onConfirm, onCancel, onViewReport }) {
+export default function PaymentGuard({ riskScore, triggeredRules, scamCategory, summary, onConfirm, onCancel, onViewReport, isAnalyzingChunk, interimRiskScore, stage2Confirmed }) {
     const [acknowledged, setAcknowledged] = useState(false);
 
-    if (riskScore < SCORING_CONFIG.PAYMENT_CONFIRM_THRESHOLD) return null;
+    // ── Tier relaxation guard ─────────────────────────────────────────
+    // While Stage 1 (keyword analysis) is running, tiers can only escalate—never
+    // relax—because interimRiskScore is provisional. This prevents a scammer from
+    // exploiting rapid re-analysis to lower friction mid-call.
+    // Tiers relax only after stage2Confirmed=true (Stage 2 / Gemini completed).
+    const guardedRiskScore = isAnalyzingChunk
+        ? Math.max(riskScore, interimRiskScore ?? 0)  // Stage 1 window: tiers can only rise
+        : stage2Confirmed
+            ? riskScore                                // Stage 2 confirmed: trust Gemini score
+            : Math.max(riskScore, interimRiskScore ?? 0); // Pre-first-analysis: stay conservative
 
-    const isBlock = riskScore >= SCORING_CONFIG.PAYMENT_BLOCK_THRESHOLD;
-    const isStrongConfirm = riskScore >= SCORING_CONFIG.PAYMENT_STRONG_CONFIRM_THRESHOLD && !isBlock;
-    const isWarning = riskScore >= SCORING_CONFIG.PAYMENT_CONFIRM_THRESHOLD && !isStrongConfirm && !isBlock;
+    if (guardedRiskScore < SCORING_CONFIG.PAYMENT_CONFIRM_THRESHOLD) return null;
+
+    const isBlock        = guardedRiskScore >= SCORING_CONFIG.PAYMENT_BLOCK_THRESHOLD;
+    const isStrongConfirm = guardedRiskScore >= SCORING_CONFIG.PAYMENT_STRONG_CONFIRM_THRESHOLD && !isBlock;
+    const isWarning      = guardedRiskScore >= SCORING_CONFIG.PAYMENT_CONFIRM_THRESHOLD && !isStrongConfirm && !isBlock;
 
     return (
         <AnimatePresence>
@@ -43,6 +54,30 @@ export default function PaymentGuard({ riskScore, triggeredRules, scamCategory, 
                             <p style={{ color: '#475569', lineHeight: 1.6, marginBottom: 24 }}>
                                 Our AI detected several suspicious indicators during your ongoing conversation. Please verify the caller independently before transferring money.
                             </p>
+
+                            {/* Interim Protection Banner — shown when Gemini still analysing.
+                                 Explicitly states the Stage 1 recall tradeoff so the user
+                                 understands this score is a provisional keyword estimate. */}
+                            {isAnalyzingChunk && (
+                                <div style={{
+                                    background: 'linear-gradient(135deg, #FFF7ED, #FFFBEB)',
+                                    border: '1px solid #FCD34D',
+                                    borderRadius: 10, padding: '10px 14px', marginBottom: 16,
+                                    display: 'flex', alignItems: 'flex-start', gap: 10
+                                }}>
+                                    <span style={{ fontSize: 14, marginTop: 1 }}>⚠️</span>
+                                    <div>
+                                        <div style={{ fontSize: 12, fontWeight: 700, color: '#92400E' }}>Stage 1 Score — Provisional</div>
+                                        <div style={{ fontSize: 11, color: '#B45309', marginTop: 2, lineHeight: 1.5 }}>
+                                            This score comes from keyword matching (Stage 1), the same engine
+                                            as Reduced Accuracy Mode
+                                            {interimRiskScore > 0 && ` (interim: ${interimRiskScore.toFixed(0)} pts)`}.
+                                            {' '}CRITICAL-threshold recall is ~20% for keyword matching vs. ~70% for Gemini.
+                                            Score may update when Gemini analysis completes.
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                             
                             <div style={{ background: '#F8FAFC', borderRadius: 12, padding: 16, marginBottom: 32, border: '1px solid #E2E8F0' }}>
                                 <div style={{ fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>Why was this flagged?</div>

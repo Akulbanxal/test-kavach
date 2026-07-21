@@ -82,11 +82,57 @@ flowchart TD
 
 1. **Audio Capture:** Securely accesses the user's microphone using WebRTC and streams the audio buffer.
 2. **Speech Recognition:** Converts the live audio stream into continuous text chunks.
-3. **AI Analysis:** The Analysis Orchestrator batches the context and requests structural entity extraction and semantic similarity from Gemini 2.5 Flash.
+3. **Two-Stage AI Analysis:** When a chunk is flushed, **Stage 1** runs synchronously (<0.1 ms) using `localFallbackAnalyzer` (keyword matching) to produce an instant provisional risk score, activating payment friction tiers immediately. **Stage 2** sends the chunk to Gemini 2.5 Flash for deep semantic entity extraction (~9–13 s). The provisional score is labeled as such in the UI and PaymentGuard tiers only relax after Stage 2 confirms a lower risk. See [Two-Stage Detection & Interim Protection](#-two-stage-detection--interim-protection) for recall tradeoffs.
 4. **Rule Evaluation:** The Rule Engine ingests the LLM output, triggering deterministic fraud indicators (e.g., `Authority Impersonation`, `Credential Request`).
 5. **Risk Scoring:** The Risk Engine calculates an adaptive, smoothed probability score combining weighted rules and semantic similarity bonuses.
 6. **Payment Protection:** The Progressive Payment Guard intercepts any outgoing transaction request if the Risk Score breaches established thresholds.
 7. **Investigation Report:** A detailed breakdown of the threat vectors is generated for user review and audit logging.
+
+---
+
+## 🔀 Two-Stage Detection & Interim Protection
+
+Every transcript chunk triggers a two-stage pipeline designed to balance **speed** (zero-latency friction) with **accuracy** (Gemini semantic understanding):
+
+| | Stage 1 — Instant | Stage 2 — Confirmed |
+|---|---|---|
+| **Engine** | `localFallbackAnalyzer` + `RuleEngine` | Gemini 2.5 Flash + `RuleEngine` + RAG |
+| **Latency** | < 0.1 ms (synchronous, in-browser) | ~9–13 s (Cloud Run + LLM inference) |
+| **Output** | `interimRiskScore` (provisional) | `displayProbability` (authoritative) |
+| **Purpose** | Activate payment friction immediately | Confirm or correct Stage 1 assessment |
+| **UI label** | "REFINING WITH AI ANALYSIS… / Stage 1 score is provisional (keyword-only)" | Score updates, "Confirmed: lower risk" pill if corrected downward |
+
+**How they interact:**
+1. When a transcript chunk is flushed, Stage 1 runs synchronously and `interimRiskScore` is published immediately. `effectiveRiskScore = max(displayProbability, interimRiskScore)` so PaymentGuard friction tiers can only **escalate** during this window.
+2. Stage 2 begins as an async Gemini call. `isAnalyzingChunk = true` the entire time.
+3. When Stage 2 completes, `interimRiskScore` resets to 0 and `displayProbability` (the smoothed Gemini-backed score) takes over. If Stage 2 returns a score meaningfully lower than Stage 1's peak, a "✓ Confirmed: lower risk than initial estimate" micro-message is shown so the score decrease reads as a correction, not a glitch.
+4. **Tier relaxation is gated on `stage2Confirmed = true`** — PaymentGuard friction tiers never step down until Gemini has completed at least one cycle, preventing a scammer from exploiting rapid re-analysis to lower friction mid-call.
+
+> [!CAUTION]
+> **Known Tradeoff — Stage 1 is the lowest-recall engine in the system.**
+> Stage 1 uses `localFallbackAnalyzer` — the **same keyword-regex engine** documented in the [⚠️ Local Fallback Engine Accuracy & Quality Disclosure](#%EF%B8%8F-local-fallback-engine-accuracy--quality-disclosure) section below. Its recall on the 32-sample adversarial test set is:
+> - **~85.0%** at MEDIUM threshold  
+> - **~50.0%** at HIGH threshold  
+> - **~20.0%** at CRITICAL threshold  
+>
+> Stage 1 provides **fast but lower-confidence friction**. Stage 2 (Gemini) provides **slower but higher-confidence confirmation (~70% CRITICAL recall)**. The UI makes this explicit: the interim score is labeled "provisional (keyword-only)" and PaymentGuard shows a "Stage 1 Score — Provisional" banner with the recall gap called out. Do not interpret a Stage 1 score crossing the CRITICAL threshold as a high-confidence fraud detection — it is a precautionary hold pending Gemini confirmation.
+
+---
+
+## ⏱ End-to-End Detection Latency
+
+Real-time performance in Kavach AI is governed by the **End-to-End (E2E) Pipeline Latency** from audio chunk finalization to UI state publication:
+
+$$\text{Latency}_{\text{E2E}} = t_{\text{Chunk Finalize}} \rightarrow t_{\text{Network Roundtrip (/api/analyze)}} \rightarrow t_{\text{Rule Engine}} \rightarrow t_{\text{Risk Engine}} \rightarrow t_{\text{UI State Publish}}$$
+
+| Processing Path | Engine | Avg Latency | P50 (Median) | P95 Latency | Operational Bottleneck |
+|---|---|---|---|---|---|
+| **Gemini Path (Cloud)** | Vertex AI (Gemini 1.5 Flash) + RAG | **~13,421 ms** | **~12,686 ms** | **~25,777 ms** | Cloud Run Network RTT + Gemini LLM Inference |
+| **Fallback Path (Local)** | Keyword Regex (`localFallbackAnalyzer`) | **~0.026 ms** | **~0.019 ms** | **~0.041 ms** | In-browser JS Regex |
+| **Rule Engine Only** | Point Scoring (`ruleEngine.ts`) | **~0.006 ms** | **~0.0005 ms** | **~0.020 ms** | In-memory calculation |
+
+> ⚠ **Real-Time Performance Note**: Pure rule engine execution (~0.006 ms) is negligible. **End-to-End pipeline latency (~13.4 s average on Gemini path vs ~0.026 ms on Fallback path)** is the true metric for real-world detection speed. This latency gap is precisely why Stage 1 interim protection exists.
+
 
 ---
 
@@ -276,6 +322,88 @@ We have rigorously tested Kavach against multiple real-world scenarios.
 - **Explainable AI (XAI):** Kavach never hides behind a percentage score. Every intervention explicitly lists the rules triggered (e.g., "Caller requested OTP", "Caller claimed to be Authority") so the user understands exactly *why* they are being protected.
 - **False-Positive Reduction:** Pure AI can be overzealous. By blending LLM semantic extraction with a deterministic Rule Engine, Kavach ignores legitimate conversations (like a bank calling about a due date) unless malicious intent (requesting PINs/money) is also present.
 - **Human-Centered Security:** The progressive workflow avoids user fatigue by allowing safe transactions to proceed seamlessly while only creating friction when genuine threats emerge.
+
+---
+
+---
+
+## 🌐 Language Support & Code-Mixing
+
+Kavach AI supports multi-lingual real-time analysis across English, Hindi, and Hinglish:
+- **Speech Recognition**: WebSocket streaming STT supporting `en-US` and `hi-IN`.
+- **Gemini NLP Engine**: Prompted to process Hindi / Hinglish code-mixed transcripts and map entities to the standardized fraud JSON schema.
+- **Local Fallback**: Keyword bank includes Hindi scam terminology (`police wala`, `giraftari`, `daroga`, `khata number`, `otp batao`, `paise bhejo`, `warrant`).
+- **Scam Signatures**: Includes dedicated Hindi simulation profiles (`police_hindi`, `banking_hindi`).
+
+---
+
+## 📋 Data & Validation Notes
+
+### Sourcing of Scam Signatures & Vocabulary
+The Hindi/Hinglish scam simulation profiles in `src/ai/scam-signatures.js` and local keyword banks in `src/ai/localFallbackAnalyzer.ts` were authored based on public regulatory advisories and cybercrime bulletins, including:
+1. **RBI Public Press Releases & Advisories**:
+   - *Digital Arrest Scam Warning* ([PR No. 56702](https://rbi.org.in/Scripts/BS_PressReleaseDisplay.aspx?prid=56702)): Warning against fake police/CBI video arrests and coercive UPI transfers.
+   - *UPI PIN Safety Advisory* ([PR No. 53573](https://rbi.org.in/Scripts/BS_PressReleaseDisplay.aspx?prid=53573)): Clarifying that UPI PINs are required only when sending money.
+   - *Account Suspension & KYC Threats* ([Report ID 1246](https://rbi.org.in/Scripts/PublicationReportDetails.aspx?UrlPage=&ID=1246)): Fraudulent bank impersonation calls threatening account freezing.
+   - *OTP & Banking Credential Rules* ([Report ID 1213](https://rbi.org.in/Scripts/PublicationReportDetails.aspx?UrlPage=&ID=1213)): Directives regarding OTP/PIN harvesting.
+2. **CERT-In (Indian Computer Emergency Response Team) Bulletins**:
+   - Official advisories on Fake CBI/Police calls and Telecom / TRAI disconnection scams.
+3. **Cybercrime Helpline 1930 & Investigative News Reports**:
+   - Documented phrasing from real-world Indian voice scams (*"police wala"*, *"kachehri"*, *"giraftari warrant"*, *"clearance fee"*, *"6-digit passcode"*).
+
+### Validation Limitations & Next Steps
+- **Lack of Empirical Field Call Validation**: The synthetic audio profiles and keyword banks have **NOT** been validated against an empirical dataset of real-world recorded scam calls, nor formally validated by native Hindi/Hinglish speakers with direct exposure to live fraud operations.
+- **Evaluation Scope**: Benchmarks demonstrate performance on synthetic self-authored and adversarial test sets. They do **not** guarantee identical recall against unstudied field-dialect variations or novel live scam scripts.
+- **Production Roadmap**: Partnering with telecom operators, financial intelligence units, or cybercrime authorities to evaluate and calibrate rules against anonymized real-call audio datasets is a mandatory next step before production deployment.
+
+---
+
+## 📑 Feature & Architecture Status (3 Tiers)
+
+### Tier 1 — Active in Main Flow (Shipped & Demoable)
+- **Real-Time Voice Intelligence**: Audio capture via WebRTC, Google Cloud STT streaming, Gemini 1.5 Flash structured entity extraction.
+- **Acoustic Anomaly Heuristics**: Pure DSP feature extraction (ZCR, spectral flatness, HF ratio, pitch stability, voice entropy), capped at 29.5% for real voice.
+- **8-Rule Risk Engine**: Explainable point-based scoring (OTP requests, authority impersonation, payment demands, urgency).
+- **RAG Semantic Embeddings**: Contextual similarity matching against known scam vectors.
+- **Consent & Privacy UX**: Pre-call consent modal (`ConsentModal.jsx`) & Privacy policy (`PRIVACY.md`).
+- **Cryptographic Hash Chaining**: SHA-256 tamper-evident log chaining computed locally in-browser (`src/ai/crypto.js`).
+- **Gemini Cost/Latency Fallback**: Automatic failover to local keyword heuristics (`localFallbackAnalyzer.ts`) when API retries exhaust. Displays `⚠️ REDUCED ACCURACY MODE` in UI.
+- **Progressive Payment Protection**: 4-tier risk-gated transaction authorization.
+- **Forensic PDF Export**: Complete investigation report with timeline and tamper-evident hash chain verification.
+- **Benchmark Harness**: Automated testing suite (`scripts/benchmark.js` -> `BENCHMARKS.md`).
+
+---
+
+### ⚠️ Local Fallback Engine Accuracy & Quality Disclosure
+
+When the Gemini 1.5 Flash API is unreachable or retries exhaust, Kavach AI switches to `localFallbackAnalyzer.ts` (pure keyword regex matching). Evaluated against 32 independent adversarial samples:
+
+| Risk Threshold | Gemini Path Recall | Fallback Path Recall | Accuracy Gap | UI Indicator |
+|---|---|---|---|---|
+| **Medium (0.34)** | **100.0%** | **85.0%** | -15.0% | `⚠️ REDUCED ACCURACY MODE` |
+| **High (0.60)** | **100.0%** | **50.0%** | -50.0% | `⚠️ REDUCED ACCURACY MODE` |
+| **Critical (0.80)** | **70.0%** | **20.0%** | -50.0% | `⚠️ REDUCED ACCURACY MODE` |
+
+> **Reason**: Keyword regex matching lacks LLM semantic reasoning for paraphrased evasion claims (*"six-digit confirmation number"* instead of *"OTP"*). The system displays a prominent `REDUCED ACCURACY MODE` UI banner during degraded operation to prevent false user confidence.
+
+---
+
+### 🛡 SHA-256 Hash Chain Security Note
+
+- **What it DOES protect against**: Detects retroactive edits or deletion of log entries after they are appended to the session chain.
+- **What it DOES NOT protect against**: Does not protect against a malicious operator who controls the host browser/device before log entries are hashed, since all hashing is client-side.
+- **Purpose**: Establishes chain-of-custody log integrity for session audit reports, not cryptographic proof against host machine compromise. See `SECURITY_NOTES.md` and `PRIVACY.md`.
+
+### Tier 2 — Present in Codebase (Experimental / Future Scope)
+- **ONNX Deepfake Inference Manager** (`src/ai/inference.js`): ONNX Runtime session manager for LCNN model (unwired due to per-utterance MVN requirements).
+- **Multi-Signal Fusion Engine** (`src/ai/fusion-engine.js`): DSP + neural + biometric score fusion algorithms.
+- **Hysteresis Risk State Machine** (`src/ai/risk-state-machine.js`): Discrete state lock machine (replaced by continuous adaptive convergence).
+- **SHAP Feature Attribution** (`src/ai/explainability.js`): Linear feature contribution calculator.
+- **IndexedDB Voice Store** (`src/ai/db.js`): Biometric template storage for voice enrollment.
+
+### Tier 3 — Deprecated / Removed
+- **Uncapped Acoustic Deepfake Scoring**: Raw DSP metrics misidentified fast human speech; re-framed as auxiliary acoustic heuristics capped at 30%.
+- **Client-Side Direct LLM Calls**: Replaced by authenticated Cloud Run backend proxy.
 
 ---
 

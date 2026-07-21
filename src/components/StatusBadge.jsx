@@ -229,7 +229,7 @@ export default function StatusBadge({ probability, threatLevel, callActive, feat
             Fraud Risk Analysis
           </div>
           <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>
-            Acoustic Scam Verification
+            Acoustic Anomaly Heuristics
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
@@ -277,7 +277,7 @@ export default function StatusBadge({ probability, threatLevel, callActive, feat
               fontSize: 9, fontWeight: 800, letterSpacing: '0.14em', color: '#94A3B8',
               fontFamily: 'JetBrains Mono, monospace', marginBottom: 12, textTransform: 'uppercase',
             }}>
-              Acoustic Signature Analysis
+              Acoustic Heuristics <span style={{ fontWeight: 400, fontSize: 8, letterSpacing: '0.05em', color: '#CBD5E1' }}>(DSP · capped 30%)</span>
             </div>
             <FeatureBar icon="📊" label="Spectral Match Index" value={f.zcr      || 0} color="#3B82F6" />
             <FeatureBar icon="〰" label="Cadence Consistency"  value={f.flatness || 0} color="#8B5CF6" />

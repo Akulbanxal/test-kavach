@@ -1,9 +1,16 @@
 /**
- * Kavach AI — Scam Voice Signature Detection Engine V3
+ * Kavach AI — Acoustic Anomaly Heuristics Engine
+ *
+ * Extracts DSP features (ZCR, spectral flatness, HF ratio, pitch stability, entropy)
+ * and compares them against known scam acoustic profiles.
+ *
+ * ⚠ Capability note: This engine is a heuristic-only DSP scorer.
+ *   It does NOT constitute deepfake voice identification or neural classification.
+ *   Acoustic risk scores are an auxiliary signal alongside the Gemini semantic engine.
  *
  * Scoring rules:
- *   Normal voice: 0–30%   (hard ceiling at 29.5% to ensure SAFE status)
- *   Scam simulated attack: 25% → 42% → 68% → 88% → 97% (progressive)
+ *   Normal voice: 0–30%   (hard ceiling at 29.5% — heuristics are not reliable enough to trigger lockdown alone)
+ *   Scam simulated attack: 25% → 42% → 68% → 88% → 97% (deterministic demo sequence)
  */
 
 import { SCAM_SIGNATURES, compareAgainstSignatures } from './scam-signatures';
@@ -281,5 +288,20 @@ export function handlePCMChunk(pcm16Data) {
 }
 
 export async function initModel() {
-  console.log('[Kavach AI] Scam voice signature database initialized.');
+  console.log('[Kavach AI] Acoustic anomaly heuristics database initialized.');
+}
+
+// ── Engine Capability Declaration ─────────────────────────────────────────────
+/**
+ * Returns a machine-readable description of this engine's detection capabilities.
+ * Callers should NOT treat this engine as a deepfake classifier.
+ */
+export function getEngineCaps() {
+  return {
+    type: 'heuristic-dsp',
+    version: '3.0.0',
+    description: 'Acoustic anomaly detection using DSP features (ZCR, spectral flatness, HF ratio, pitch stability, voice entropy).',
+    limitation: 'Heuristics only — does not constitute deepfake voice identification. Real-voice acoustic score is hard-capped at 29.5% by design.',
+    primaryDetector: 'Gemini semantic engine (see analysisOrchestrator.ts)',
+  };
 }

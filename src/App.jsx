@@ -8,8 +8,10 @@ import CallPanel from './components/CallPanel';
 import StatusBadge from './components/StatusBadge';
 import { AIAnalysisPanel } from './components/AIAnalysisPanel';
 import InvestigationReport from './components/InvestigationReport';
+import ConsentModal from './components/ConsentModal';
 import { startSecureCall, stopSecureCall } from './webrtc/stream-handler';
 import { SCAM_SIGNATURES } from './ai/scam-signatures';
+import { sha256 } from './ai/crypto';
 import { useLiveAnalysis } from './hooks/useLiveAnalysis';
 import './index.css';
 
@@ -241,6 +243,12 @@ function LandingPage({ onLaunch }) {
 
             <footer style={{ padding: '24px', textAlign: 'center', fontSize: 11, color: '#94A3B8', position: 'relative', zIndex: 10 }}>
                 © TEAM De-GenZ
+                {' · '}
+                <a
+                    href="https://github.com/swapnilyt1234/Kavach-AI/blob/main/PRIVACY.md"
+                    target="_blank" rel="noopener noreferrer"
+                    style={{ color: '#94A3B8', textDecoration: 'underline' }}
+                >Privacy Policy</a>
             </footer>
         </div>
     );
@@ -255,7 +263,18 @@ export default function App() {
     const [displayProbability, setDisplayProbability] = useState(5);
     const [pendingTransaction, setPendingTransaction] = useState(null);
     const [completedTransaction, setCompletedTransaction] = useState(null);
+    const [showConsentModal, setShowConsentModal] = useState(false);
+    const [forensicChain, setForensicChain] = useState([]);
+    const [selectedLanguage, setSelectedLanguage] = useState('en-US');
     const displayProbRef = useRef(displayProbability);
+    // Tracks the highest interim (Stage 1) score seen during the current analysis
+    // window. Used to detect when Stage 2 (Gemini) returns a lower, more accurate score.
+    const peakInterimScoreRef = useRef(0);
+    const prevIsAnalyzingChunkRef = useRef(false);
+    const [confirmedLowerRisk, setConfirmedLowerRisk] = useState(false);
+    // True once Stage 2 has completed at least one cycle (prevents tiers from
+    // relaxing on a Stage-1-only trigger).
+    const [stage2Confirmed, setStage2Confirmed] = useState(false);
 
     const {
         probability, threatLevel, locked: backendLocked, scamMatch,
@@ -263,8 +282,23 @@ export default function App() {
         triggeredRules, callerIntent, scamCategory, emotionalTone, conversationStage,
         urgencyLevel, manipulationTechniques, suspiciousClaims, authorityDetected, credentialRequest, paymentRequest, otpMentioned, summary, reasoning,
         aiSource, similarScams, ragCitations,
+        interimRiskScore, isAnalyzingChunk,
         startAnalysis, stopAnalysis, resetAnalysis, injectSimulatedScam
     } = useLiveAnalysis();
+
+    // ── Effective risk score for payment friction ────────────────────────────
+    // During the ~9s Gemini analysis window, use whichever is higher:
+    // - the smoothed displayProbability from the last completed Gemini cycle (Stage 2)
+    // - the instant interim score from LocalFallbackAnalyzer (Stage 1, this cycle)
+    // This ensures users are never unprotected during the analysis window.
+    // Once Gemini completes and updates displayProbability, interimRiskScore
+    // resets to 0 and displayProbability takes over as authoritative.
+    //
+    // ⚠ Stage 1 (interimRiskScore) uses localFallbackAnalyzer — the same keyword-only
+    // engine as Fallback Mode (~20% CRITICAL recall). It is deliberately conservative
+    // (biased toward friction) for the ~9s window only. The displayed score during
+    // analysis is provisional. Stage 2 (Gemini) is the authoritative result.
+    const effectiveRiskScore = Math.max(displayProbability, interimRiskScore);
 
     const [locked, setLocked] = useState(false);
 
@@ -295,6 +329,38 @@ export default function App() {
         }
         previousAiSource.current = aiSource;
     }, [aiSource]);
+
+    // ── Track Stage 1 peak score & detect Stage 2 lower-risk confirmation ───────
+    // When isAnalyzingChunk is true, record the highest interim score seen.
+    // When isAnalyzingChunk transitions true→false, Stage 2 has completed.
+    // If Stage 2's displayProbability is meaningfully lower than Stage 1's peak,
+    // surface a "Confirmed: lower risk" micro-message and mark stage2Confirmed=true
+    // so PaymentGuard knows it can trust a tier relaxation.
+    useEffect(() => {
+        if (isAnalyzingChunk) {
+            // Stage 1 window is open — accumulate peak
+            if (interimRiskScore > peakInterimScoreRef.current) {
+                peakInterimScoreRef.current = interimRiskScore;
+            }
+        } else if (prevIsAnalyzingChunkRef.current && !isAnalyzingChunk) {
+            // Stage 2 just landed (true → false transition)
+            const peak = peakInterimScoreRef.current;
+            const confirmed = displayProbability;
+            // Show correction message only when Gemini returned a meaningfully lower score
+            // (>5% lower than the Stage 1 peak that was visible to the user)
+            if (peak > 0 && confirmed < peak - 5) {
+                setConfirmedLowerRisk(true);
+                addLog(
+                    `AI confirmed lower risk: ${confirmed.toFixed(0)}% (Stage 1 interim was ${peak.toFixed(0)}%)`,
+                    'ok'
+                );
+                setTimeout(() => setConfirmedLowerRisk(false), 4000);
+            }
+            setStage2Confirmed(true);
+            peakInterimScoreRef.current = 0;
+        }
+        prevIsAnalyzingChunkRef.current = isAnalyzingChunk;
+    }, [isAnalyzingChunk, interimRiskScore, displayProbability]);
 
     useEffect(() => {
         const handler = () => {
@@ -337,13 +403,32 @@ export default function App() {
             addLog('⚠ FRAUD LOCKDOWN ACTIVATED — Session terminated', 'threat');
             addLog('Financial banking access suspended until verification', 'threat');
 
-            setReportData({
-                probability, threatLevel, locked: true, scamMatch,
-                features, amplitude, trend, rollingScores,
-                triggeredRules, callerIntent, scamCategory, emotionalTone, conversationStage,
-                urgencyLevel, manipulationTechniques, suspiciousClaims, authorityDetected,
-                credentialRequest, paymentRequest, otpMentioned, summary, reasoning, aiSource,
-                similarScams, ragCitations
+            // ── Task 5: Build forensic hash-chain ─────────────────────────────
+            // Each entry is hashed with SHA-256 chaining prev hash, producing
+            // a tamper-evident log. Chain is computed asynchronously.
+            const buildChain = async (logEntries) => {
+                let prevHash = '0000000000000000000000000000000000000000000000000000000000000000';
+                const chain = [];
+                for (const entry of logEntries) {
+                    const payload = JSON.stringify({ time: entry.time, msg: entry.msg, type: entry.type, prev: prevHash });
+                    const hash = await sha256(payload);
+                    chain.push({ ...entry, hash, prevHash });
+                    prevHash = hash;
+                }
+                setForensicChain(chain);
+                return chain;
+            };
+
+            buildChain(logs).then((chain) => {
+                setReportData({
+                    probability, threatLevel, locked: true, scamMatch,
+                    features, amplitude, trend, rollingScores,
+                    triggeredRules, callerIntent, scamCategory, emotionalTone, conversationStage,
+                    urgencyLevel, manipulationTechniques, suspiciousClaims, authorityDetected,
+                    credentialRequest, paymentRequest, otpMentioned, summary, reasoning, aiSource,
+                    similarScams, ragCitations,
+                    forensicChain: chain,
+                });
             });
         } else if (!locked) {
             lockedRef.current = false;
@@ -399,14 +484,27 @@ export default function App() {
 
 
 
-    const handleStartCall = async () => {
+    const handleStartCall = () => {
+        // Show consent modal first; actual call starts in handleConsentAccept
+        setShowConsentModal(true);
+    };
+
+    const handleConsentAccept = async () => {
+        setShowConsentModal(false);
+        setForensicChain([]);
         resetAnalysis();
         setCallActive(true);
+        addLog('User consent obtained. Session authorized.', 'ok');
         addLog('Secure protected banking call established', 'ok');
-        addLog('Acoustic scanning match engine active', 'info');
+        addLog('Acoustic anomaly monitor active', 'info');
         addLog('Monitoring stream for high-risk voice profiles...', 'info');
         await startSecureCall();
         startAnalysis();
+    };
+
+    const handleConsentDecline = () => {
+        setShowConsentModal(false);
+        addLog('Session declined by user (consent not given)', 'warn');
     };
 
     const handleEndCall = () => {
@@ -435,32 +533,37 @@ export default function App() {
         const signature = SCAM_SIGNATURES[scamType];
         const displayName = signature ? signature.displayName : 'Scam Voice';
 
-        // Trigger voice synthesis
+        // Trigger voice synthesis — use speechRate/speechPitch from signature if present
         if ('speechSynthesis' in window && signature?.spokenSentence) {
-            window.speechSynthesis.cancel(); // cancel any active speech
+            window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(signature.spokenSentence);
 
-            // Adjust rate and pitch to match signature characteristics
-            if (scamType === 'police') {
-                utterance.rate = 0.88;  // Slow, serious, authoritative
-                utterance.pitch = 0.80; // Deep tone
+            if (signature.speechRate) {
+                utterance.rate = signature.speechRate;
+                utterance.pitch = signature.speechPitch ?? 1.0;
+            } else if (scamType === 'police') {
+                utterance.rate = 0.88;
+                utterance.pitch = 0.80;
             } else if (scamType === 'rbi') {
-                utterance.rate = 1.0;   // Robot IVR speed
-                utterance.pitch = 1.25; // High artificial pitch
+                utterance.rate = 1.0;
+                utterance.pitch = 1.25;
             } else if (scamType === 'family') {
-                utterance.rate = 1.15;  // Fast and anxious
-                utterance.pitch = 1.0;  // Normal tone
+                utterance.rate = 1.15;
+                utterance.pitch = 1.0;
             } else if (scamType === 'kyc') {
-                utterance.rate = 1.05;  // Fast/Urgent
-                utterance.pitch = 0.95; // Slightly lower
+                utterance.rate = 1.05;
+                utterance.pitch = 0.95;
             }
 
-            // Find English voice
+            // For Hindi scenarios, prefer hi-IN voice if available
             const voices = window.speechSynthesis.getVoices();
-            const voice = voices.find(v => v.lang.startsWith('en-IN') || v.lang.startsWith('en-GB') || v.lang.startsWith('en'));
-            if (voice) {
-                utterance.voice = voice;
-            }
+            const isHindi = scamType.includes('hindi');
+            const voice = isHindi
+                ? voices.find(v => v.lang.startsWith('hi-IN')) ||
+                  voices.find(v => v.lang.startsWith('en-IN')) ||
+                  voices.find(v => v.lang.startsWith('en'))
+                : voices.find(v => v.lang.startsWith('en-IN') || v.lang.startsWith('en-GB') || v.lang.startsWith('en'));
+            if (voice) utterance.voice = voice;
 
             window.speechSynthesis.speak(utterance);
         }
@@ -484,7 +587,7 @@ export default function App() {
     };
 
     const handlePaymentSubmit = (data) => {
-        if (displayProbability >= 50) {
+        if (effectiveRiskScore >= 50) {
             setPendingTransaction(data);
             return false;
         } else {
@@ -521,7 +624,8 @@ export default function App() {
     const entropyDisplay = callActive ? (features.entropy * 4).toFixed(2) : '--';
 
     return (
-        <AnimatePresence mode="wait">
+        <>
+            <AnimatePresence mode="wait">
             {!showDashboard ? (
                 <motion.div
                     key="landing"
@@ -594,7 +698,9 @@ export default function App() {
                                 </div>
                                 <div>
                                     <div style={{ fontSize: 13, fontWeight: 800, color: '#92400E', marginBottom: 4 }}>Cloud AI quota reached.</div>
-                                    <div style={{ fontSize: 12, color: '#B45309', lineHeight: 1.4, fontWeight: 500 }}>Switched to Local Semantic Engine. Protection continues.</div>
+                                    <div style={{ fontSize: 12, color: '#B45309', lineHeight: 1.4, fontWeight: 500 }}>
+                                        ⚠️ <strong>Reduced Accuracy Mode:</strong> Switched to local keyword matcher (-15% to -50% recall gap).
+                                    </div>
                                 </div>
                             </motion.div>
                         )}
@@ -699,10 +805,74 @@ export default function App() {
                                         marginLeft: 8
                                     }}>
                                         <span style={{ fontSize: 11, fontWeight: 700, color: '#D97706', letterSpacing: '0.06em' }}>
-                                            ⚠️ LOCAL FALLBACK
+                                            ⚠️ REDUCED ACCURACY MODE
                                         </span>
                                     </div>
                                 )}
+                                {/* Stage 2 analysis in-progress indicator — shows during the ~9s Gemini window.
+                                     Explicitly labels the Stage 1 interim score as provisional/keyword-only
+                                     so users understand it may be revised when Gemini completes. */}
+                                {callActive && isAnalyzingChunk && aiSource !== 'Local Fallback' && (
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.9 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.9 }}
+                                        style={{
+                                            display: 'flex', alignItems: 'center', gap: 7,
+                                            background: 'linear-gradient(135deg, #EFF6FF, #F0F9FF)',
+                                            border: '1px solid #BFDBFE',
+                                            borderRadius: 99, padding: '6px 14px',
+                                            marginLeft: 8
+                                        }}
+                                    >
+                                        <motion.span
+                                            animate={{ rotate: 360 }}
+                                            transition={{ duration: 1.2, repeat: Infinity, ease: 'linear' }}
+                                            style={{ display: 'inline-block', fontSize: 11 }}
+                                        >
+                                            🔄
+                                        </motion.span>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                            <span style={{ fontSize: 11, fontWeight: 700, color: '#2563EB', letterSpacing: '0.06em' }}>
+                                                REFINING WITH AI ANALYSIS...
+                                            </span>
+                                            <span style={{ fontSize: 9, fontWeight: 500, color: '#60A5FA', letterSpacing: '0.03em' }}>
+                                                Stage 1 score is provisional (keyword-only)
+                                            </span>
+                                        </div>
+                                        {interimRiskScore > 0 && (
+                                            <span style={{ fontSize: 10, fontWeight: 600, color: interimRiskScore >= 60 ? '#DC2626' : '#D97706', background: interimRiskScore >= 60 ? '#FEF2F2' : '#FFFBEB', borderRadius: 99, padding: '1px 6px' }}>
+                                                interim {interimRiskScore.toFixed(0)}pts
+                                            </span>
+                                        )}
+                                    </motion.div>
+                                )}
+                                {/* Stage 2 lower-risk confirmation pill — appears briefly when Gemini
+                                     returns a meaningfully lower score than Stage 1's keyword estimate,
+                                     so the score decrease reads as a correction, not a bug. */}
+                                <AnimatePresence>
+                                {confirmedLowerRisk && (
+                                    <motion.div
+                                        key="confirmed-lower-risk"
+                                        initial={{ opacity: 0, scale: 0.85, x: 8 }}
+                                        animate={{ opacity: 1, scale: 1, x: 0 }}
+                                        exit={{ opacity: 0, scale: 0.85, x: 8 }}
+                                        transition={{ type: 'spring', stiffness: 300, damping: 24 }}
+                                        style={{
+                                            display: 'flex', alignItems: 'center', gap: 6,
+                                            background: 'linear-gradient(135deg, #ECFDF5, #D1FAE5)',
+                                            border: '1px solid #6EE7B7',
+                                            borderRadius: 99, padding: '5px 13px',
+                                            marginLeft: 8
+                                        }}
+                                    >
+                                        <span style={{ fontSize: 12 }}>✓</span>
+                                        <span style={{ fontSize: 11, fontWeight: 700, color: '#065F46', letterSpacing: '0.04em' }}>
+                                            Confirmed: lower risk than initial estimate
+                                        </span>
+                                    </motion.div>
+                                )}
+                                </AnimatePresence>
                             </div>
                         </div>
                     </header>
@@ -756,6 +926,8 @@ export default function App() {
                                     packetInteg={packetInteg}
                                     entropy={entropyDisplay}
                                     amplitude={amplitude}
+                                    selectedLanguage={selectedLanguage}
+                                    onLanguageChange={setSelectedLanguage}
                                 />
                                 <StatusBadge
                                     probability={displayProbability / 100}
@@ -777,10 +949,13 @@ export default function App() {
 
                         {pendingTransaction && (
                             <PaymentGuard
-                                riskScore={displayProbability}
+                                riskScore={effectiveRiskScore}
                                 triggeredRules={triggeredRules}
                                 scamCategory={scamCategory}
                                 summary={summary}
+                                isAnalyzingChunk={isAnalyzingChunk}
+                                interimRiskScore={interimRiskScore}
+                                stage2Confirmed={stage2Confirmed}
                                 onConfirm={handlePaymentConfirm}
                                 onCancel={handlePaymentCancel}
                                 onViewReport={() => {
@@ -800,7 +975,7 @@ export default function App() {
                             onClose={() => setCompletedTransaction(null)}
                         />
 
-                        {/* AI Reasoning Panel (Full Width below grid) */}
+                        {/* AI Live Analysis Panel */}
                         <motion.div
                             initial={{ opacity: 0, y: 15 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -811,12 +986,22 @@ export default function App() {
                                 riskScore={displayProbability}
                                 alertLevel={threatLevel}
                                 riskTrend={trend}
-                                scamCategory={scamCategory}
                                 callerIntent={callerIntent}
-                                conversationStage={conversationStage}
+                                scamCategory={scamCategory}
                                 emotionalTone={emotionalTone}
+                                conversationStage={conversationStage}
                                 urgencyLevel={urgencyLevel}
                                 manipulationTechniques={manipulationTechniques}
+                                suspiciousClaims={suspiciousClaims}
+                                authorityDetected={authorityDetected}
+                                credentialRequest={credentialRequest}
+                                paymentRequest={paymentRequest}
+                                otpMentioned={otpMentioned}
+                                summary={summary}
+                                reasoning={reasoning}
+                                aiSource={aiSource}
+                                similarScams={similarScams}
+                                ragCitations={ragCitations}
                                 triggeredRules={triggeredRules}
                                 locked={locked}
                                 callActive={callActive}
@@ -838,7 +1023,6 @@ export default function App() {
                                 position: 'relative', overflow: 'hidden',
                             }}
                         >
-                            {/* Top accent line */}
                             <div style={{
                                 position: 'absolute', top: 0, left: 0, right: 0, height: 2,
                                 background: 'linear-gradient(90deg, #10B981, #06B6D4)',
@@ -873,5 +1057,14 @@ export default function App() {
                 </motion.div>
             )}
         </AnimatePresence>
+
+        {/* Consent Modal — gated before mic access */}
+        {showConsentModal && (
+            <ConsentModal
+                onAccept={handleConsentAccept}
+                onDecline={handleConsentDecline}
+            />
+        )}
+        </>
     );
 }

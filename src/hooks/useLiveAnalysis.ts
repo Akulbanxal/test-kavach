@@ -27,7 +27,9 @@ export function useLiveAnalysis() {
         reasoning: '',
         aiSource: 'None',
         similarScams: [],
-        ragCitations: []
+        ragCitations: [],
+        interimRiskScore: 0,
+        isAnalyzingChunk: false,
     });
 
     useEffect(() => {

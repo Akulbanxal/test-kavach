@@ -40,8 +40,16 @@ const ContextMetric = ({ label, value }: { label: string, value: string }) => (
 
 export const AIAnalysisPanel: React.FC<AIAnalysisPanelProps> = React.memo((props) => {
     
+    const triggeredRules = props.triggeredRules || [];
+    const manipulationTechniques = props.manipulationTechniques || [];
+    const scamCategory = props.scamCategory || 'Unknown';
+    const callerIntent = props.callerIntent || 'Unknown';
+    const conversationStage = props.conversationStage || 'Opening';
+    const emotionalTone = props.emotionalTone || 'Neutral';
+    const urgencyLevel = props.urgencyLevel || 'Low';
+
     // Sort rules by points descending
-    const sortedRules = [...props.triggeredRules].sort((a, b) => b.points - a.points);
+    const sortedRules = [...triggeredRules].sort((a, b) => (b.points || 0) - (a.points || 0));
 
     return (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '24px', width: '100%' }}>
@@ -59,22 +67,22 @@ export const AIAnalysisPanel: React.FC<AIAnalysisPanelProps> = React.memo((props
 
                     {/* Context Grid */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '20px' }}>
-                        <ContextMetric label="Scam Category" value={props.scamCategory} />
-                        <ContextMetric label="Caller Intent" value={props.callerIntent} />
-                        <ContextMetric label="Conversation Stage" value={props.conversationStage} />
-                        <ContextMetric label="Emotional Tone" value={props.emotionalTone} />
-                        <ContextMetric label="Urgency Level" value={props.urgencyLevel} />
+                        <ContextMetric label="Scam Category" value={scamCategory} />
+                        <ContextMetric label="Caller Intent" value={callerIntent} />
+                        <ContextMetric label="Conversation Stage" value={conversationStage} />
+                        <ContextMetric label="Emotional Tone" value={emotionalTone} />
+                        <ContextMetric label="Urgency Level" value={urgencyLevel} />
                     </div>
 
                     {/* Manipulation Techniques */}
-                    {props.manipulationTechniques.length > 0 && (
+                    {manipulationTechniques.length > 0 && (
                         <div style={{ marginBottom: '24px' }}>
                             <div style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px' }}>
                                 Manipulation Techniques Detected
                             </div>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                                 <AnimatePresence>
-                                    {props.manipulationTechniques.map(tech => (
+                                    {manipulationTechniques.map(tech => (
                                         <ManipulationBadge key={tech} technique={tech} />
                                     ))}
                                 </AnimatePresence>
@@ -84,10 +92,10 @@ export const AIAnalysisPanel: React.FC<AIAnalysisPanelProps> = React.memo((props
 
                     {/* Reasoning Summary */}
                     <ReasoningSummary 
-                        scamCategory={props.scamCategory}
-                        callerIntent={props.callerIntent}
-                        urgencyLevel={props.urgencyLevel}
-                        manipulationTechniques={props.manipulationTechniques}
+                        scamCategory={scamCategory}
+                        callerIntent={callerIntent}
+                        urgencyLevel={urgencyLevel}
+                        manipulationTechniques={manipulationTechniques}
                     />
                 </div>
 
@@ -99,7 +107,7 @@ export const AIAnalysisPanel: React.FC<AIAnalysisPanelProps> = React.memo((props
                         </h3>
                         <AnimatePresence>
                             {sortedRules.map((rule, idx) => (
-                                <RuleCard key={rule.id} rule={rule} isPrimary={idx === 0} />
+                                <RuleCard key={rule.id || idx} rule={rule} isPrimary={idx === 0} />
                             ))}
                         </AnimatePresence>
                     </div>

@@ -5,6 +5,7 @@ import { jsPDF } from 'jspdf';
 
 export default function InvestigationReport({ data, logs, onClose }) {
     const reportRef = useRef(null);
+    const forensicChain = data.forensicChain || [];
 
     const exportPDF = async () => {
         if (!reportRef.current) return;
@@ -486,6 +487,62 @@ export default function InvestigationReport({ data, logs, onClose }) {
                                     ))}
                                 </ul>
                             </section>
+
+                            {/* ── Forensic Hash Chain ── */}
+                            {forensicChain.length > 0 && (
+                                <section style={{ marginTop: 24 }}>
+                                    <div style={{ fontSize: 12, fontWeight: 800, color: '#94A3B8', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>
+                                        Forensic Hash Chain
+                                        <span style={{ marginLeft: 8, fontWeight: 500, fontSize: 10, color: '#CBD5E1', textTransform: 'none' }}>
+                                            SHA-256 tamper-evident log · computed in-browser
+                                        </span>
+                                    </div>
+                                    <div style={{ fontSize: 10, color: '#94A3B8', marginBottom: 12 }}>
+                                        Genesis block: <code style={{ background: '#F1F5F9', padding: '1px 5px', borderRadius: 4, fontSize: 9, color: '#64748B' }}>{'0'.repeat(64)}</code>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                                        {forensicChain.map((entry, idx) => (
+                                            <div key={idx} style={{
+                                                display: 'grid',
+                                                gridTemplateColumns: '60px 1fr',
+                                                gap: 0,
+                                                fontSize: 10,
+                                                fontFamily: 'JetBrains Mono, monospace',
+                                                lineHeight: 1,
+                                            }}>
+                                                {/* Chain link line */}
+                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 4 }}>
+                                                    <div style={{
+                                                        width: 8, height: 8, borderRadius: '50%',
+                                                        background: entry.type === 'threat' ? '#DC2626' : entry.type === 'warn' ? '#F59E0B' : '#10B981',
+                                                        flexShrink: 0,
+                                                    }} />
+                                                    {idx < forensicChain.length - 1 && (
+                                                        <div style={{ width: 1, flex: 1, background: '#E2E8F0', margin: '2px 0' }} />
+                                                    )}
+                                                </div>
+                                                {/* Entry */}
+                                                <div style={{ padding: '4px 0 8px 8px' }}>
+                                                    <div style={{ color: '#334155', fontSize: 11, marginBottom: 3 }}>
+                                                        [{entry.time}] {entry.msg}
+                                                    </div>
+                                                    <div style={{ color: '#94A3B8', fontSize: 9, marginBottom: 2 }}>
+                                                        <span style={{ color: '#CBD5E1' }}>prev: </span>
+                                                        <span style={{ color: '#CBD5E1', wordBreak: 'break-all' }}>{entry.prevHash.slice(0, 16)}&hellip;</span>
+                                                    </div>
+                                                    <div style={{ color: '#64748B', fontSize: 9, wordBreak: 'break-all' }}>
+                                                        <span style={{ color: '#94A3B8' }}>hash: </span>
+                                                        <span style={{ color: '#2563EB', fontWeight: 700 }}>{entry.hash}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div style={{ marginTop: 12, padding: '10px 14px', background: '#EFF6FF', borderRadius: 8, border: '1px solid #BFDBFE', fontSize: 11, color: '#1D4ED8', lineHeight: 1.4 }}>
+                                        ✔ <strong>Tamper-Evident Hash Chain:</strong> Each entry incorporates the previous SHA-256 hash to detect retroactive edits to the session log. Provides chain-of-custody log integrity (does not protect against pre-hashing client-side host tampering).
+                                    </div>
+                                </section>
+                            )}
                         </div>
                     </div>
 

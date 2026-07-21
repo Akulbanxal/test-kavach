@@ -56,6 +56,7 @@ export class RiskEngine {
     private similarScams: any[] = [];
     private ragCitations: any[] = [];
 
+    private highConfidenceStreak = 0;
     private ruleEngine: RuleEngine;
 
     constructor() {
@@ -67,6 +68,7 @@ export class RiskEngine {
         if (!intel || intel.callerIntent === 'Unknown' && intel.scamCategory === 'Unknown') {
             // Decay risk slowly if no threats detected
             this.currentProbability = Math.max(0.05, this.currentProbability * 0.9);
+            this.highConfidenceStreak = 0;
             this.updateThreatLevel();
             return this.getState();
         }
@@ -79,23 +81,44 @@ export class RiskEngine {
         const engineResult = this.ruleEngine.evaluate(intel);
         const targetConfidence = engineResult.score / 100.0;
 
+        // Track sustained high-confidence calls (rule score >= 75 points)
+        if (targetConfidence >= 0.75) {
+            this.highConfidenceStreak++;
+        } else {
+            this.highConfidenceStreak = 0;
+        }
+
         // Adaptive convergence algorithm
         // Replaces the old fixed-bracket system to gracefully handle both long live sessions and short mock bursts.
-        // Base rate scales from 0.35 (low risk) up to 0.75 (high risk).
+        // Base rate scales from 0.25 (low risk) up to 0.75 (high risk).
         let convergenceRate = 0.25 + (targetConfidence * 0.50);
 
-        // If there is a massive sudden jump in evidence (common in fast mock scenarios), accelerate
+        // Acceleration 1: Sudden evidence spike bonus
         const diff = Math.max(0, targetConfidence - this.currentProbability);
         if (diff > 0.40) {
             convergenceRate += 0.20;
         }
 
-        // Cap convergence to avoid instant teleportation and preserve UI animation fluidity
-        convergenceRate = Math.min(0.95, convergenceRate);
+        // Acceleration 2: Sustained high confidence escalation bonus
+        // When high threat (score >= 75) persists across 2+ consecutive chunks, accelerate convergence rate
+        if (this.highConfidenceStreak >= 2) {
+            convergenceRate += 0.15;
+        }
+
+        // Cap convergence rate to preserve UI animation fluidity (max 0.98 when sustained high risk)
+        const maxRate = this.highConfidenceStreak >= 2 ? 0.98 : 0.95;
+        convergenceRate = Math.min(maxRate, convergenceRate);
+
+        // Effective target confidence boost for sustained severe threats (score >= 0.90 for 2+ chunks)
+        // Solves the mathematical asymptote where target 0.90 could never reach 0.95 LOCKDOWN
+        let effectiveTarget = targetConfidence;
+        if (targetConfidence >= 0.90 && this.highConfidenceStreak >= 2) {
+            effectiveTarget = Math.min(1.0, targetConfidence + 0.06);
+        }
 
         this.currentProbability =
             this.currentProbability * (1 - convergenceRate) +
-            targetConfidence * convergenceRate;
+            effectiveTarget * convergenceRate;
 
         this.currentProbability = Math.min(1.0, this.currentProbability);
 
@@ -201,6 +224,7 @@ export class RiskEngine {
         this.currentProbability = 0.05;
         this.currentThreatLevel = 'SAFE';
         this.isLocked = false;
+        this.highConfidenceStreak = 0;
         this.activeMatch = null;
         this.triggeredRules = [];
         this.callerIntent = 'Unknown';
