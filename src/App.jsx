@@ -891,7 +891,7 @@ export default function App() {
                                 color="#2563EB"
                                 icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" /></svg>}
                             />
-                            <MetricCard label="Fraud Risk" value={callActive ? displayProbability.toFixed(0) : '--'} unit="%"
+                            <MetricCard label="Fraud Risk" value={callActive ? effectiveRiskScore.toFixed(0) : '--'} unit="%"
                                 color={riskColor}
                                 icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={riskColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>}
                             />
@@ -930,7 +930,7 @@ export default function App() {
                                     onLanguageChange={setSelectedLanguage}
                                 />
                                 <StatusBadge
-                                    probability={displayProbability / 100}
+                                    probability={effectiveRiskScore / 100}
                                     threatLevel={threatLevel}
                                     callActive={callActive}
                                     features={features}
@@ -943,7 +943,7 @@ export default function App() {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.15 }}
                             >
-                                <PaymentForm riskScore={displayProbability} onSend={handlePaymentSubmit} />
+                                <PaymentForm riskScore={effectiveRiskScore} onSend={handlePaymentSubmit} />
                             </motion.div>
                         </div>
 
@@ -983,7 +983,7 @@ export default function App() {
                             style={{ marginTop: 24 }}
                         >
                             <AIAnalysisPanel
-                                riskScore={displayProbability}
+                                riskScore={effectiveRiskScore}
                                 alertLevel={threatLevel}
                                 riskTrend={trend}
                                 callerIntent={callerIntent}
